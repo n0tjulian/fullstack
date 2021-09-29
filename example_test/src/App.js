@@ -25,14 +25,21 @@ const App = () => {
     event.preventDefault()
     console.log('button cicked', event.target)
     var newNoteObject = {
-      id:notes.length+1,
+      // id:notes.length+1,
       content:text,
       date: new Date().toISOString(),
       important:Math.random() < 0.5
     }
-    var newNotes = notes.concat(newNoteObject)
-    setNotes(newNotes)
-    setText('')
+
+    axios.post('http://localhost:3001/notes',newNoteObject).then(
+      response => {
+        console.log(response)
+        var newNotes = notes.concat(response.data)
+        setNotes(newNotes)
+        setText('')
+      }
+    )
+    
   }
 
 
