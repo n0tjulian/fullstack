@@ -1,6 +1,8 @@
 import React, {useState,useEffect} from 'react'
 import Note from './components/Note'
+import Form from './components/Form'
 import axios from 'axios'
+import noteService from './services/notes'
 
 
 const App = () => {
@@ -11,15 +13,28 @@ const App = () => {
 
   useEffect(() => {
     console.log('effect')
-    axios.get('http://localhost:3001/notes').then(response => {
+    noteService.getAll().then(initialNotes => {
       console.log('promise fulfilled, notes retrieved')
-      setNotes(response.data)
+      setNotes(initialNotes)
+    }).catch(error => {
+      console.log("error in getAll call in APP",error)
     })
   },[])
 
 
-  console.log('render' , notes.length, 'notes')
+  const toggleImportanceOf = (id) => {
+    console.log('importance of ' + id + ' needs to be toggled')
+    const note = notes.find(n => n.id === id)
+    const changedNote = {...note,important:!note.important}
 
+    noteService.update(id,changedNote).then(returnedNote => {
+      setNotes(notes.map(note => note.id !== id? note : returnedNote))
+    }).catch(error => {
+          alert(`the note ${note.content} was already deleted from the server`)
+          setNotes(notes.filter(n=>n.id!==id))
+    })
+          
+  }
 
   const addNote = (event) => {
     event.preventDefault()
@@ -31,14 +46,16 @@ const App = () => {
       important:Math.random() < 0.5
     }
 
-    axios.post('http://localhost:3001/notes',newNoteObject).then(
-      response => {
-        console.log(response)
-        var newNotes = notes.concat(response.data)
+    noteService.create(newNoteObject).then(
+      returnedNote => {
+        console.log(returnedNote)
+        var newNotes = notes.concat(returnedNote)
         setNotes(newNotes)
         setText('')
       }
-    )
+    ).catch(error => {
+      console.log("error in create in App add note",error)
+    })
     
   }
 
@@ -60,16 +77,18 @@ const App = () => {
       <h1>Notes</h1>
       <ul>
         {notesToShow.map((note) => 
-        <Note key={note.id} note={note}/> //key is added to the note component
+        <Note key={note.id} note={note} toggleImportance={() => toggleImportanceOf(note.id)}/> //key is added to the note component
         )}
       </ul>
-      <form onSubmit={addNote} >
-        <input value={text} onChange = {updateTextField}/>
-        <button type="submit">save</button>
-      </form>
+      
+     
+      <Form addNote={addNote} updateTextField={updateTextField} updateShowAll={updateShowAll} notesToShow={notesToShow} showAll={showAll} text={text}/>
+      
       <button onClick={updateShowAll}>{showAll?'important' : 'all'}</button>
     </div>
   )
 }
+
+
 
 export default App

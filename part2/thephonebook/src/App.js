@@ -1,5 +1,5 @@
 import React, { useState, useEffect} from 'react'
-import axios from 'axios'
+import peopleService from './services/people'
 
 const App = () => {
 
@@ -9,33 +9,52 @@ const App = () => {
   const [newSearch,setNewSearch] = useState('')
 
   useEffect(() => {
-    axios.get('http://localhost:3005/persons').then(response => {
-      setPersons(response.data)
+    peopleService.getAll().then(retrievedPeople => {
+      setPersons(retrievedPeople)
     })
   },[])
 
 
   const addPerson = (event) => {
+
     event.preventDefault()
-    console.log(`adding person with name ${newName}`)
-    const found = (person) => person.name === newName
+    const foundFunction = (person) => person.name === newName
 
-    if(!(persons.some(found))){
+    let newPerson = {
+      name:newName,
+      number:newNumber,
+    }
 
-      let newPerson = {
-        name:newName,
-        number:newNumber,
-        id:persons.length+1
+    let foundPersonBoolean = persons.some(foundFunction)
+    if(!foundPersonBoolean){
+
+      peopleService.create(newPerson).then(returnedPerson => {
+        setPersons(persons.concat(returnedPerson))
+        setNewName('')
+        setNewNumber('')
       }
-
-      setPersons(persons.concat(newPerson))
-      setNewName('')
-      setNewNumber('')
+      )
 
     }else{
-      alert(`${newName} is already in the phonebook`)
+
+      const foundPerson = persons.filter(person => person.name === newName)
+      alert(`${newName} is already in the phonebook, would you like to replace the number?`)
+      
+      peopleService.update(foundPerson[0].id,newPerson).then(response => {
+        console.log(`${newName}'s number has been changed'`)
+      })
+
+      const newPersonsList = persons.map(person => {
+        if(person.id === foundPerson[0].id){
+          person = {...newPerson,id:foundPerson[0].id}
+        }
+        return person
+      })
+      
+      setPersons(newPersonsList)
       setNewName('')
       setNewNumber('')
+
       }
 
   }
@@ -47,19 +66,31 @@ const App = () => {
 
   const updateNumberField = (event) => {
     event.preventDefault()
-    console.log(newNumber)
     setNewNumber(event.target.value)
   }
 
   const updateSearchField = (event) => {
     event.preventDefault()
-    console.log(newSearch)
     setNewSearch(event.target.value)
   }
 
+  const deletePerson = (event) => {
+    const foundPerson = persons.find(found => {
+      if(parseInt(found.id) === parseInt(event.target.value)){
+        return found
+      }
+    })
+      
+    alert(`do you want to delete ${foundPerson.name}`)
+    peopleService.deletePerson(foundPerson.id).then(response=>{
+      console.log(`${foundPerson.name} has been deleted`)
+    })
+
+    const newPersonArray = persons.filter(person => person.id !==foundPerson.id)
+    setPersons(newPersonArray)
+  }
+
   const calculateSearchResults = () => {
-    console.log("inside calculating search results")
-    console.log(`strings must contain ${newSearch}`)
     const result = persons.filter((person) => {
       return person.name.toLowerCase().includes(newSearch.toLowerCase())
     }
@@ -69,16 +100,16 @@ const App = () => {
   }
 
   const resultsToShow = calculateSearchResults()
-
-
+  
   return (
     <div>
       <h2>Phonebook</h2>
-      
       <Filter searchFilter={newSearch} filterFunction={updateSearchField}/>
+      
       <Form newNameValue={newName} updateInputFieldFunction={updateInputField}
         newNumberValue={newNumber} updateNumberFieldFunction={updateNumberField} addPersonFunction={addPerson}/>
-      <Numbers people={resultsToShow}/>
+      
+      <Numbers people={resultsToShow} deletePerson={deletePerson}/>
     </div>
   )
 }
@@ -114,19 +145,17 @@ const Numbers = (props) => {
       <h3>
         Numbers
       </h3>
-  
-      {props.people.map((person) => <Person key={person.id} name={person.name} number={person.number}/>)}
-      
+      {props.people.map((person) => <Person key={person.id} person={person} deletePerson={props.deletePerson}/>)}
     </div>
   )
 
 }
 
-const Person = (props) => {
+const Person = ({person,deletePerson}) => {
   return(
-    
-    <p>{props.name} {props.number}</p>
-    
+    <div>
+      <p>{person.name} {person.number} <button value={person.id} onClick={deletePerson}>delete</button></p>
+    </div> 
   )
 }
 
