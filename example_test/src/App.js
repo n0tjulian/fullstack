@@ -1,6 +1,7 @@
 import React, {useState,useEffect} from 'react'
 import Note from './components/Note'
 import Form from './components/Form'
+import Notification from './components/Notification'
 import axios from 'axios'
 import noteService from './services/notes'
 
@@ -10,6 +11,7 @@ const App = () => {
   const [notes,setNotes] = useState([])
   const [text,setText] = useState('')
   const [showAll, setShowAll] = useState(true)
+  const [errorMessage,setErrorMessage] = useState(null)
 
   useEffect(() => {
     console.log('effect')
@@ -30,9 +32,15 @@ const App = () => {
     noteService.update(id,changedNote).then(returnedNote => {
       setNotes(notes.map(note => note.id !== id? note : returnedNote))
     }).catch(error => {
-          alert(`the note ${note.content} was already deleted from the server`)
-          setNotes(notes.filter(n=>n.id!==id))
-    })
+        setErrorMessage(
+          `Note '${note.content}' was already removed from server`
+        )
+        setTimeout(() => {
+          setErrorMessage(null)
+        }, 5000)
+
+        setNotes(notes.filter(n=>n.id!==id))
+      })
           
   }
 
@@ -75,16 +83,16 @@ const App = () => {
   return (
     <div>
       <h1>Notes</h1>
+      <Notification message={errorMessage} />
       <ul>
         {notesToShow.map((note) => 
         <Note key={note.id} note={note} toggleImportance={() => toggleImportanceOf(note.id)}/> //key is added to the note component
         )}
       </ul>
       
-     
       <Form addNote={addNote} updateTextField={updateTextField} updateShowAll={updateShowAll} notesToShow={notesToShow} showAll={showAll} text={text}/>
-      
       <button onClick={updateShowAll}>{showAll?'important' : 'all'}</button>
+      
     </div>
   )
 }

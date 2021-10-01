@@ -1,5 +1,6 @@
 import React, { useState, useEffect} from 'react'
 import peopleService from './services/people'
+import {Form,Numbers,Filter,Notification} from './components/phoneBookComponents'
 
 const App = () => {
 
@@ -7,6 +8,8 @@ const App = () => {
   const [ newName, setNewName ] = useState('')
   const [newNumber,setNewNumber] = useState('')
   const [newSearch,setNewSearch] = useState('')
+  const [errorMessage,setErrorMessage] = useState(null)
+  const [successMessage,setSuccessMessage] = useState(null)
 
   useEffect(() => {
     peopleService.getAll().then(retrievedPeople => {
@@ -30,6 +33,12 @@ const App = () => {
 
       peopleService.create(newPerson).then(returnedPerson => {
         setPersons(persons.concat(returnedPerson))
+        setSuccessMessage(`${returnedPerson.name} has been added successfully`)
+        
+        setTimeout(() => {
+          setSuccessMessage(null)
+        }, 5000)
+        
         setNewName('')
         setNewNumber('')
       }
@@ -41,20 +50,32 @@ const App = () => {
       alert(`${newName} is already in the phonebook, would you like to replace the number?`)
       
       peopleService.update(foundPerson[0].id,newPerson).then(response => {
-        console.log(`${newName}'s number has been changed'`)
-      })
+          setSuccessMessage(`${newName}'s number has been changed`)
+          setTimeout(()=>{
+            setSuccessMessage(null)
+          },5000)
 
-      const newPersonsList = persons.map(person => {
-        if(person.id === foundPerson[0].id){
-          person = {...newPerson,id:foundPerson[0].id}
-        }
-        return person
-      })
-      
-      setPersons(newPersonsList)
-      setNewName('')
-      setNewNumber('')
-
+          const newPersonsList = persons.map(person => {
+            if(person.id === foundPerson[0].id){
+              person = {...newPerson,id:foundPerson[0].id}
+            }
+            return person
+          })
+          
+          setPersons(newPersonsList)
+          setNewName('')
+          setNewNumber('')
+        
+        }).catch(error => {
+          setErrorMessage(`${newName} has been removed from the server`)
+          setTimeout( () => {
+            setErrorMessage(null)
+          },5000)
+          const newPersonsList = persons.filter(person => person.name !== newName)
+          setPersons(newPersonsList)
+          setNewName('')
+          setNewNumber('')
+        })
       }
 
   }
@@ -83,7 +104,15 @@ const App = () => {
       
     alert(`do you want to delete ${foundPerson.name}`)
     peopleService.deletePerson(foundPerson.id).then(response=>{
-      console.log(`${foundPerson.name} has been deleted`)
+      setSuccessMessage(`${foundPerson.name} has been deleted`)
+      setTimeout(() => {
+        setSuccessMessage(null)
+      },5000)
+    }).catch(error => {
+      setErrorMessage(`that entry has already been deleted`)
+      setTimeout(() => {
+        setErrorMessage(null)
+      },5000)
     })
 
     const newPersonArray = persons.filter(person => person.id !==foundPerson.id)
@@ -95,7 +124,6 @@ const App = () => {
       return person.name.toLowerCase().includes(newSearch.toLowerCase())
     }
     )
-    console.log(result)
     return result
   }
 
@@ -104,6 +132,9 @@ const App = () => {
   return (
     <div>
       <h2>Phonebook</h2>
+      <Notification message={errorMessage} positive={false}/>
+      <Notification message={successMessage} positive={true}/>
+
       <Filter searchFilter={newSearch} filterFunction={updateSearchField}/>
       
       <Form newNameValue={newName} updateInputFieldFunction={updateInputField}
@@ -111,51 +142,6 @@ const App = () => {
       
       <Numbers people={resultsToShow} deletePerson={deletePerson}/>
     </div>
-  )
-}
-
-const Form = ({newNameValue,updateInputFieldFunction,newNumberValue,updateNumberFieldFunction,addPersonFunction}) => {
-  return (
-    <form onSubmit={addPersonFunction}>
-    <h3>Add someone new:</h3>
-    <div>
-      Name: <input value={newNameValue} onChange={updateInputFieldFunction}/>
-    </div>
-    <div>
-      Number: <input value={newNumberValue} onChange={updateNumberFieldFunction}/>
-    </div>
-    <div>
-      <button type="submit">add</button>
-    </div>
-  </form>
-
-  )
-}
-const Filter = ({searchFilter,filterFunction}) => {
-  return(
-    <div>
-      <input value={searchFilter} onChange={filterFunction}/>
-    </div>
-  )
-}
-
-const Numbers = (props) => {
-  return(
-    <div>
-      <h3>
-        Numbers
-      </h3>
-      {props.people.map((person) => <Person key={person.id} person={person} deletePerson={props.deletePerson}/>)}
-    </div>
-  )
-
-}
-
-const Person = ({person,deletePerson}) => {
-  return(
-    <div>
-      <p>{person.name} {person.number} <button value={person.id} onClick={deletePerson}>delete</button></p>
-    </div> 
   )
 }
 
