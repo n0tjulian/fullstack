@@ -2,7 +2,6 @@ import React, {useState,useEffect} from 'react'
 import Note from './components/Note'
 import Form from './components/Form'
 import Notification from './components/Notification'
-import axios from 'axios'
 import noteService from './services/notes'
 
 

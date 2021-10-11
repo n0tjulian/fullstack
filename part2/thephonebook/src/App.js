@@ -42,7 +42,12 @@ const App = () => {
         setNewName('')
         setNewNumber('')
       }
-      )
+      ).catch(error => {
+        setErrorMessage(error.response.data.error)
+        setTimeout(() => {
+          setErrorMessage(null)
+        }, 5000)
+      })
 
     }else{
 
@@ -97,7 +102,7 @@ const App = () => {
 
   const deletePerson = (event) => {
     const foundPerson = persons.find(found => {
-      if(parseInt(found.id) === parseInt(event.target.value)){
+      if(found.id === event.target.value){
         return found
       }
     })
